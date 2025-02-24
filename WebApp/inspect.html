@@ -1,0 +1,124 @@
+<!-- style.css -->
+<style>ul,ul li{font-family:'Roboto Mono',monospace}.hover-pointer,.linkButton{cursor:pointer}:not(.logItem){color:#23272a;font-family:Arial}.logItem{margin-top:0;margin-bottom:0}.linkButton{padding:.75rem;background-color:#23272a;color:#eee;border-radius:.5rem}ul{list-style-type:none;font-size:14px;line-height:25px;padding-left:5px}ul li{border-bottom:1px solid #80808038;cursor:default}li{display:block;white-space:normal;word-wrap:break-word}.disabled{background-color:#aaa;cursor:not-allowed}#consoleContainer{width:100%;display:flex;gap:2.5rem}#consoleWindow{height:50vh;width:50vw}#lowerContainer>div{flex-grow:1;padding:1rem}@media (orientation:portrait){#consoleWindow{width:95vw;margin-left:2.5vw;margin-right:2.5vw}#consoleContainer{display:block}}</style>
+<div id="inspect">
+  <h2 id="inspectHeader">Inspect</h2>
+  <div id="inspectContent"></div>
+</div>
+<script>
+  setInterval(() => {
+    if (localStorage.getItem('scheduleToInspectElement')) {
+      const signalInfo = document.getElementById('inspectContent');
+      const json = localStorage.getItem('scheduleToInspectElement');
+      localStorage.removeItem('scheduleToInspectElement');
+      localStorage.removeItem('scheduleToInspectElement-shouldOverwrite');
+      const a = json.split(":;:");
+      if (a.length != 2) { return; }
+      if (a[0]) {
+        document.getElementById('inspectHeader').innerHTML = "Inspect - " + a[0];
+      } else {
+        document.getElementById('inspectHeader').innerHTML = "Inspect";
+      }
+      const jsonParts = a[1].split(';#;');
+      //console.log(jsonParts);
+      if (!jsonParts) return;
+      // TODO: add check for 443# and / or ir#!!!!!
+      let method = estimateMethod(jsonParts[0]);
+      if (method === undefined) {
+        // malformed json, idk why and how, but ok
+        localStorage.setItem("scheduleToast", "Error: Couldn't obtain Protocol type from " + jsonParts[0]);
+        return;
+      }
+      if (method.endsWith('-json')) {
+        for (let i = 0; i < jsonParts.length; i++) {
+          let selectedLogContent = `<ul>${Object.entries(JSON.parse(jsonParts[i])).map(([key, value]) => `<li>${key}: ${value}</li>`).join('')}</ul>`;
+          if (selectedLogContent === "<ul></ul>") {
+            selectedLogContent = "<ul>" + a[1] + "</ul>";
+          }
+          if (i == 0) {
+            signalInfo.innerHTML = selectedLogContent;
+          } else {
+            signalInfo.innerHTML += selectedLogContent;
+          }
+        }
+      } else if (method.endsWith('-raw')) {
+        let content = '';
+        let shouldOverwriteContent = true;
+        if (method.startsWith("443")) {
+          content = '443MHz - ';
+          if (jsonParts[0].includes("#")) {
+            content += jsonParts[0].split('#')[1]; // remove the prefix ("443#" or "ir#")
+          } else {
+            content += jsonParts[0];
+          }
+        } else if (method.startsWith("ir")) { // IR#1100#0011#NEC2
+          content = 'IR - ';
+          if (jsonParts[0].includes("#")) {
+            const irParts = jsonParts[0].split('#');
+            content = ''; shouldOverwriteContent = false;
+            signalInfo.innerHTML = '<ul><li>Address: ' + irParts[1] + '</li><li>Command: ' + irParts[2] + '</li><li>Protocol: ' + irParts[3] + '</li></ul>';
+          } else {
+            content += jsonParts[0];
+          }
+        }
+        if (shouldOverwriteContent) {
+          signalInfo.innerHTML = content;
+        }
+      }
+    }
+
+    if (localStorage.getItem('scheduleToInspectHeader')) {
+      document.getElementById('inspectHeader').innerHTML = localStorage.getItem('scheduleToInspectHeader');
+      localStorage.removeItem('scheduleToInspectHeader');
+    }
+  }, 25);
+
+  function isValidJSON(str) {
+    try {
+        JSON.parse(str);
+        return true;
+    } catch (e) {
+        return false;
+    }
+  }
+
+  function estimateMethod(json) {
+    if (json.startsWith("443#")) {
+      return '443-raw';
+    } else if (json.startsWith("ir#") || json.startsWith("IR#")) {
+      return 'ir-raw';
+    }
+    if (isValidJSON(json)) {
+      if (json.includes("address") && json.includes("command") && json.includes("protocol") && json.includes("bin") && json.includes("dec")) {
+        // ir
+        return 'ir-json';
+      } else if (json.includes("decimal") && json.includes("hex") && json.includes("length") && json.includes("protocol") && json.includes("tri")) {
+        // 443
+        return '443-json';
+      }
+    }
+    
+    if (onlyConsistsOfBinaryCharacters(json)) {
+      return '443-raw';
+    }
+
+    return undefined;
+  }
+
+  function onlyConsistsOfBinaryCharacters(string) {
+    let _1count = 0;
+    let _0count = 0;
+    for (let i = 0; i < string.length; i++) {
+      if (string[i] === '0') {
+        _0count++;
+      } else if (string[i] === '1') {
+        _1count++;
+      }
+
+      if (_0count + _1count != i + 1) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+</script>

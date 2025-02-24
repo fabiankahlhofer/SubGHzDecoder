@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en" id="base">
+
+<head>
+  <meta charset="UTF-8">
+  <title>SubGHzDecoder</title>
+  <style>
+    ul,
+    ul li {
+      font-family: 'Roboto Mono', monospace
+    }
+
+    .hover-pointer,
+    .linkButton {
+      cursor: pointer
+    }
+
+    :not(.logItem) {
+      color: #23272a;
+      font-family: Arial
+    }
+
+    .logItem {
+      margin-top: 0;
+      margin-bottom: 0
+    }
+
+    .linkButton {
+      padding: .75rem;
+      background-color: #23272a;
+      color: #eee;
+      border-radius: .5rem
+    }
+
+    ul {
+      list-style-type: none;
+      font-size: 14px;
+      line-height: 25px;
+      padding-left: 5px
+    }
+
+    ul li {
+      border-bottom: 1px solid #80808038;
+      cursor: default
+    }
+
+    li {
+      display: block;
+      white-space: normal;
+      word-wrap: break-word
+    }
+
+    .disabled {
+      background-color: #aaa;
+      cursor: not-allowed
+    }
+
+    #consoleContainer {
+      width: 100%;
+      display: flex;
+      gap: 2.5rem
+    }
+
+    #consoleWindow {
+      height: 50vh;
+      width: 50vw
+    }
+
+    #lowerContainer>div {
+      flex-grow: 1;
+      padding: 1rem
+    }
+
+    @media (orientation:portrait) {
+      #consoleWindow {
+        width: 95vw;
+        margin-left: 2.5vw;
+        margin-right: 2.5vw
+      }
+
+      #consoleContainer {
+        display: block
+      }
+    }
+  </style>
+  <style>
+    * {
+      margin: 0;
+      padding: 0
+    }
+
+    .svg-box {
+      display: inline-block;
+      position: relative;
+      width: 150px
+    }
+
+    .green-stroke {
+      stroke: #7cb342
+    }
+
+    .red-stroke {
+      stroke: #ff6245
+    }
+
+    .yellow-stroke {
+      stroke: #ffc107
+    }
+
+    .alert-sign,
+    .checkmark,
+    .cross {
+      stroke-width: 6.25;
+      position: absolute;
+      stroke-linecap: round
+    }
+
+    .circular circle.path {
+      stroke-dasharray: 330;
+      stroke-dashoffset: 0;
+      stroke-linecap: round;
+      opacity: .4;
+      animation: .7s ease-out draw-circle
+    }
+
+    .checkmark {
+      top: 56px;
+      left: 49px;
+      width: 52px;
+      height: 40px
+    }
+
+    .checkmark path {
+      animation: 1s ease-out draw-check
+    }
+
+    @keyframes draw-circle {
+      0% {
+        stroke-dasharray: 0, 330;
+        stroke-dashoffset: 0;
+        opacity: 1
+      }
+
+      80% {
+        stroke-dasharray: 330, 330;
+        stroke-dashoffset: 0;
+        opacity: 1
+      }
+
+      100% {
+        opacity: .4
+      }
+    }
+
+    @keyframes draw-check {
+      0% {
+        stroke-dasharray: 49, 80;
+        stroke-dashoffset: 48;
+        opacity: 0
+      }
+
+      50% {
+        stroke-dasharray: 49, 80;
+        stroke-dashoffset: 48;
+        opacity: 1
+      }
+
+      100% {
+        stroke-dasharray: 130, 80;
+        stroke-dashoffset: 48
+      }
+    }
+
+    .cross {
+      top: 54px;
+      left: 54px;
+      width: 40px;
+      height: 40px
+    }
+
+    .cross .first-line {
+      animation: .7s ease-out draw-first-line
+    }
+
+    .cross .second-line {
+      animation: .7s ease-out draw-second-line
+    }
+
+    @keyframes draw-first-line {
+
+      0%,
+      50% {
+        stroke-dasharray: 0, 56;
+        stroke-dashoffset: 0
+      }
+
+      100% {
+        stroke-dasharray: 56, 330;
+        stroke-dashoffset: 0
+      }
+    }
+
+    @keyframes draw-second-line {
+
+      0%,
+      50% {
+        stroke-dasharray: 0, 55;
+        stroke-dashoffset: 1
+      }
+
+      100% {
+        stroke-dasharray: 55, 0;
+        stroke-dashoffset: 70
+      }
+    }
+
+    .alert-sign {
+      top: 40px;
+      left: 68px;
+      width: 15px;
+      height: 70px;
+      animation: .5s cubic-bezier(.175, .885, .32, 1.275) alert-sign-bounce
+    }
+
+    .alert-sign .dot {
+      stroke: none;
+      fill: #ffc107
+    }
+
+    @keyframes alert-sign-bounce {
+      0% {
+        transform: scale(0);
+        opacity: 0
+      }
+
+      50% {
+        transform: scale(0);
+        opacity: 1
+      }
+
+      100% {
+        transform: scale(1)
+      }
+    }
+  </style>
+  <style>
+    #toast {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      transform: translate(-50%);
+      background-color: #eee;
+      color: #000;
+      padding: 16px;
+      border-radius: 4px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(0, 0, 0, .3);
+      visibility: hidden;
+      opacity: 0;
+      z-index: 20202020202020
+    }
+
+    #toast.show {
+      visibility: visible;
+      animation: 3s fadeInOut
+    }
+
+    @keyframes fadeInOut {
+
+      5%,
+      95% {
+        opacity: 1;
+        top: 50px
+      }
+
+      15%,
+      85% {
+        opacity: 1;
+        top: 30px
+      }
+    }
+  </style>
+  <style>
+    #createCustomCommandCloseBtn:hover,
+    .box {
+      cursor: pointer
+    }
+
+    .box {
+      background: #23272a;
+      color: #eee;
+      position: relative;
+      padding: 10px;
+      box-shadow: 0 0 8px rgba(0, 0, 0, .2);
+      box-sizing: border-box
+    }
+
+    .box:hover {
+      background: rgba(35, 39, 42, .9);
+      box-shadow: 0 8px 15px rgba(0, 0, 0, .4)
+    }
+  </style>
+</head>
+
+<body style="background:#eee;overflow-x:hidden">
+  <div id="toast"></div>
+  <h1 style="margin:1rem">SubGHzDecoder</h1>
+  <div id="customSendButtonsContainer" style="position:absolute;top:1rem;right:1rem;display:flex;gap:1rem">
+    <div style="float:left" class="box" id="send-custom-443-btn">
+      <div class="box__label" style="color:#eee">443MHz</div>
+    </div>
+    <div style="float:right" class="box" id="send-custom-ir-btn">
+      <div class="box__label" style="color:#eee">IR</div>
+    </div>
+  </div>
+  <div id="consoleContainer">
+    <div style="width:50vw;min-width:50vw;max-width:50vw;display:flex;justify-content:space-between;height:50vh">
+      <iframe style="width:98%;margin-right:1%;margin-left:1%" frameborder="0" src="console-433.html"></iframe>
+      <!-- <iframe style="width:49%" src="console-ir.html" frameborder="0"></iframe> -->
+    </div>
+    <div id="consoleConfigContainer"><input type="checkbox" id="automaticScrolling" name="automaticScrolling"
+        value="automaticScrolling"><label for="automaticScrolling">Enable automatic scrolling</label>
+      <div id="menuButtonsContainer"
+        style="display:flex;gap:1rem;align-items:center;margin-top:2.5rem;margin-bottom:2.5rem"><a
+          id="protocolManagerButton" class="linkButton" style="text-align:center;width:10rem">Create New Protocol</a>
+        <div id="protocol-name-container"></div>
+      </div><span id="isCreatingProtocolInformator"></span>
+      <div id="signal-info" style="margin-top:2.5rem"></div>
+      <ul id="createProtocolCommandList">
+        <li id="createProtocolCommandListLi"></li>
+      </ul>
+    </div>
+  </div>
+  <div id="lowerContainer" style="display:flex;width:100%">
+    <div id="protocols" style="width:50%">
+      <h2 style="margin-top:0;float:left">Protocols</h2>
+      <div style="float:right" class="box" id="import-protocol-btn">
+        <div class="box__label" style="color:#eee">Import Protocol</div>
+      </div><input type="file" id="fileInput" accept=".json" style="display:none" onchange="handleFileSelection(event)">
+      <input type="file" id="fileInput" style="display:none" onchange="handleFileSelection(event)"><iframe src="protocols.html" frameborder="0" width="100%" height="100%"></iframe>
+    </div><iframe frameborder="0" style="width:50%"
+      srcdoc="&lt;!-- style.css --&gt;
+    &lt;style&gt;ul,ul li{font-family:'Roboto Mono',monospace}.hover-pointer,.linkButton{cursor:pointer}:not(.logItem){color:#23272a;font-family:Arial}.logItem{margin-top:0;margin-bottom:0}.linkButton{padding:.75rem;background-color:#23272a;color:#eee;border-radius:.5rem}ul{list-style-type:none;font-size:14px;line-height:25px;padding-left:5px}ul li{border-bottom:1px solid #80808038;cursor:default}li{display:block;white-space:normal;word-wrap:break-word}.disabled{background-color:#aaa;cursor:not-allowed}#consoleContainer{width:100%;display:flex;gap:2.5rem}#consoleWindow{height:50vh;width:50vw}#lowerContainer&gt;div{flex-grow:1;padding:1rem}@media (orientation:portrait){#consoleWindow{width:95vw;margin-left:2.5vw;margin-right:2.5vw}#consoleContainer{display:block}}&lt;/style&gt;
+    &lt;div id=&quot;inspect&quot;&gt;
+      &lt;h2 id=&quot;inspectHeader&quot;&gt;Inspect&lt;/h2&gt;
+      &lt;div id=&quot;inspectContent&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;script&gt;
+      function isValidJSON(e){try{return JSON.parse(e),!0}catch(e){return!1}}function estimateMethod(e){if(e.startsWith("
+      443#"))return"443-raw";if(e.startsWith("ir#")||e.startsWith("IR#"))return"ir-raw";if(isValidJSON(e)){if(e.includes("address")&&e.includes("command")&&e.includes("protocol")&&e.includes("bin")&&e.includes("dec"))return"ir-json";if(e.includes("decimal")&&e.includes("hex")&&e.includes("length")&&e.includes("protocol")&&e.includes("tri"))return"443-json"}return
+      onlyConsistsOfBinaryCharacters(e)?"443-raw":void 0}function onlyConsistsOfBinaryCharacters(e){let t=0,n=0;for(let
+      l=0;l<e.length;l++)if("0"===e[l]?n++:"1"===e[l]&&t++,n+t!=l+1)return!1;return!0}setInterval((()=>{if(localStorage.getItem("scheduleToInspectElement")){const
+      e=document.getElementById("inspectContent"),t=localStorage.getItem("scheduleToInspectElement");localStorage.removeItem("scheduleToInspectElement"),localStorage.removeItem("scheduleToInspectElement-shouldOverwrite");const
+      n=t.split(":;:");if(2!=n.length)return;n[0]?document.getElementById("inspectHeader").innerHTML="Inspect -
+      "+n[0]:document.getElementById("inspectHeader").innerHTML="Inspect";const l=n[1].split(";#;");if(!l)return;let
+      r=estimateMethod(l[0]);if(void 0===r)return void localStorage.setItem("scheduleToast","Error: Couldn't obtain
+      Protocol type from "+l[0]);if(r.endsWith("-json"))for(let t=0;t<l.length;t++){let r=`<ul>
+        ${Object.entries(JSON.parse(l[t])).map((([e,t])=>`<li>${e}: ${t}</li>`)).join("")}</ul>`;"<ul></ul>"===r&&(r="
+        <ul>"+n[1]+"</ul>"),0==t?e.innerHTML=r:e.innerHTML+=r}else if(r.endsWith("-raw")){let
+        t="",n=!0;if(r.startsWith("443"))t="443MHz - ",l[0].includes("#")?t+=l[0].split("#")[1]:t+=l[0];else
+        if(r.startsWith("ir"))if(t="IR - ",l[0].includes("#")){const r=l[0].split("#");t="",n=!1,e.innerHTML="<ul>
+          <li>Address: "+r[1]+"</li>
+          <li>Command: "+r[2]+"</li>
+          <li>Protocol: "+r[3]+"</li>
+        </ul>"}else
+        t+=l[0];n&&(e.innerHTML=t)}}localStorage.getItem("scheduleToInspectHeader")&&(document.getElementById("inspectHeader").innerHTML=localStorage.getItem("scheduleToInspectHeader"),localStorage.removeItem("scheduleToInspectHeader"))}),25);
+        &lt;/script&gt;"></iframe>
+  </div>
+  <div id="createCustomCommandGUI"
+    style="top:50%;position:absolute;transform:translate(-50%,-50%);left:50%;z-index:9999999"></div>
+  <script>localStorage.removeItem("selectedLog"); { let e = localStorage.getItem("protocols"); e || (localStorage.setItem("protocols", ""), e = ""), e.startsWith(";;;") && (e = e.substring(3)), e.endsWith(";;;") && (e = e.substring(0, e.length - 3)), localStorage.setItem("protocols", e) } function disableButton(e) { e.style.backgroundColor = "gray", e.style.cursor = "not-allowed", e.style.pointerEvents = "none", e.classList.add("disabledButton") } function enableButton(e) { e.style.backgroundColor = "", e.style.cursor = "pointer", e.style.pointerEvents = "auto", e.classList.remove("disabledButton") } function hide(e) { var t = document.createElement("div"); t.style.zIndex = "1000", t.style.backgroundColor = "rgba(0, 0, 0, " + e + ")", t.style.width = "100vw", t.style.height = "100vh", t.style.position = "absolute", t.style.top = "0px", t.style.left = "0px", t.id = "hide-div", document.getElementById("base").appendChild(t) } function show() { const e = document.getElementById("hide-div"); e && e.remove() } function stringToBinary(e) { return e.split("").map((e => e.charCodeAt(0).toString(2).padStart(8, "0"))).join("") } function binaryToString(e) { let t = ""; for (let o = 0; o < e.length; o += 8) { let n = e.slice(o, o + 8); 8 === n.length ? t += String.fromCharCode(parseInt(n, 2)) : t += "�" } return t } function openFileSelector() { document.getElementById("fileInput").click() } function handleFileSelection(e) { const t = e.target.files[0]; if (t) if ("application/json" === t.type || t.name.endsWith(".json")) { const e = new FileReader; e.onload = function (e) { const t = e.target.result; console.log(t); const o = JSON.parse(t); for (const [e, t] of Object.entries(o)) { const o = decodeFromBase64(t), n = decodeFromBase64(e); console.log(n + "\n\n" + o); const l = n.startsWith("!-") ? n : "!-" + n; localStorage.setItem(l, o), localStorage.setItem("protocols", null == localStorage.getItem("protocols") ? n : localStorage.getItem("protocols") + ";;;" + l.substring(2)) } }, e.readAsText(t) } else alert("Please select a valid JSON file.") } function decodeFromBase64(e) { return decodeURIComponent(escape(atob(e))) } setInterval((() => { let e = localStorage.getItem("protocols"); e && e.startsWith(";;;") && (e = e.substring(3), localStorage.setItem("protocols", e), localStorage.setItem("scheduleSync", "true")) })), document.getElementById("automaticScrolling").checked = !0, setInterval((() => { localStorage.setItem("shouldScroll", document.getElementById("automaticScrolling").checked) })), disableButton(document.getElementById("protocolManagerButton")), setInterval((() => { const e = localStorage.getItem("selectedLog"); e && (enableButton(document.getElementById("protocolManagerButton")), document.getElementById("createProtocolCommandListLi").innerHTML != `${e}` && (document.getElementById("createProtocolCommandListLi").innerHTML = `${e}`, document.getElementById("protocol-name-container").innerHTML = '<form><input type="text" id="protocol-name-input" name="text-input" style="font-size:1rem;"></form>')) })), document.getElementById("protocolManagerButton").addEventListener("click", (() => { const e = document.getElementById("createProtocolCommandListLi").innerHTML, t = document.getElementById("protocol-name-input").value; t ? e ? localStorage.getItem("!-" + t) ? alert("Protocol with that name already exists.") : (localStorage.setItem("!-" + t, e), localStorage.setItem("protocols", null == localStorage.getItem("protocols") ? t : localStorage.getItem("protocols") + ";;;" + t), document.getElementById("createProtocolCommandListLi").innerHTML = "", document.getElementById("protocol-name-container").innerHTML = "", localStorage.removeItem("selectedLog"), localStorage.setItem("scheduleSync", "true"), disableButton(document.getElementById("protocolManagerButton"))) : alert("Please select a log!") : alert("Please enter a protocol name!") })), document.getElementById("import-protocol-btn").addEventListener("click", openFileSelector); const createCustom443 = document.getElementById("send-custom-443-btn"), createCustomIR = document.getElementById("send-custom-ir-btn"), createCustomCommandGUI = document.getElementById("createCustomCommandGUI"); function updateGUIsuccess() { document.getElementById("createCustomCommandGUI").innerHTML = '\n<div style="background:white;height:300px;width:300px;border-radius:2rem">\n  <div class="svg-box" id="svg-box-success" style="z-index:2020202020202020220; position:absolute; top:50%; left: 50%; transform: translate(-50%, -50%);">\n    <svg class="circular green-stroke">\n      <circle class="path" cx="75" cy="75" r="50" fill="none" stroke-width="5" stroke-miterlimit="10"/>\n    </svg>\n    <svg class="checkmark green-stroke">\n      <g transform="matrix(0.79961,8.65821e-32,8.39584e-32,0.79961,-489.57,-205.679)">\n        <path class="checkmark__check" fill="none" d="M616.306,283.025L634.087,300.805L673.361,261.53"/>\n      </g>\n    </svg>\n  </div>\n</div>\n      ' } function updateGUIerror() { document.getElementById("createCustomCommandGUI").innerHTML = '\n<div style="background:white;height:300px;width:300px;border-radius:2rem">\n  <div class="svg-box" id="svg-box-error" style="z-index:2020202020202020220; position:absolute; top:50%; left: 50%; transform: translate(-50%, -50%);">\n    <svg class="circular red-stroke">\n      <circle class="path" cx="75" cy="75" r="50" fill="none" stroke-width="5" stroke-miterlimit="10"/>\n    </svg>\n    <svg class="cross red-stroke">\n      <g transform="matrix(0.79961,8.65821e-32,8.39584e-32,0.79961,-502.652,-204.518)">\n        <path class="first-line" d="M634.087,300.805L673.361,261.53" fill="none"/>\n      </g>\n      <g transform="matrix(-1.28587e-16,-0.79961,0.79961,-1.28587e-16,-204.752,543.031)">\n        <path class="second-line" d="M634.087,300.805L673.361,261.53"/>\n      </g>\n    </svg>\n  </div>\n</div>\n      ' } function waitForLocalStorageItemThenShowSuccessScreen(e) { let t = 0; const o = setInterval((() => { t++, console.log(e), localStorage.getItem(e) && (clearInterval(o), updateGUIsuccess(), showToast("Command sent successfully."), setTimeout((() => { show(), createCustomCommandGUI.innerHTML = "", localStorage.removeItem(e), localStorage.setItem("scheduleForceSync", "true") }), 2e3)), t > 25 && (clearInterval(o), updateGUIerror(), showToast("An Error occurred."), setTimeout((() => { show(), createCustomCommandGUI.innerHTML = "", localStorage.removeItem(e), localStorage.setItem("scheduleForceSync", "true") }), 2e3)) }), 100) } function showToast(e) { var t = document.getElementById("toast"); t.classList.add("show"), t.innerHTML = e, setTimeout((function () { t.classList.remove("show") }), 3e3) } function validateInput(e) { const t = e.target, o = t.value.replace(/[^01]/g, ""); t.value !== o && (t.value = o) } createCustomIR.addEventListener("click", (() => { hide("60%"); createCustomCommandGUI.innerHTML += '\n<div style="background:white;height:75vh;width:50vw;border-radius:2rem">\n  <div id="createCustomCommandCloseBtn" style="position:absolute;top:2rem;right:2rem;background-color:black;border-radius:10rem;width:3rem;height:3rem;display:flex;align-items:center;justify-content:center">\n    <div style="color:white">✖</div>\n  </div>\n\n  <div style="padding-left: 2rem;padding-top: 1rem;">IR Protocol Name: *</div>\n  <div style="padding-left: 2rem;">\n    <form>\n      <label for="IRNameInput"></label>\n      <input type="text" id="IRNameInput" name="IRNameInput" style="font-size:18px; width:80%">\n    </form>\n  </div>\n\n  <div style="padding-left: 2rem;padding-top: 1rem;">IR Address Data:</div>\n  <div style="padding-left: 2rem;">\n    <form>\n      <label for="IRAddressInput"></label>\n      <input type="text" id="IRAddressInput" name="IRAddressInput" style="font-size:18px; width:80%">\n    </form>\n  </div>\n\n  <div style="padding-left: 2rem;padding-top: 1rem;">IR Command Data:</div>\n  <div style="padding-left: 2rem;">\n    <form>\n      \x3c!-- IRDataInput ~ IRCommandInput --\x3e\n      <label for="IRDataInput"></label>\n      <input oninput="validateInput(event)" type="text" id="IRDataInput" name="IRDataInput" style="font-size:18px; width:80%">\n    </form>\n  </div>\n\n  <div style="padding-left: 2rem;padding-top: 1rem;">IR Protocol:</div>\n  <div style="padding-left: 2rem;">\n    <form>\n      <label for="IRProtocolSelect"></label>\n      <select id="IRProtocolSelect" name="IRProtocolSelect" style="font-size:18px; width:80%">\n        <option value="PULSE_WIDTH">PULSE_WIDTH</option>\n        <option value="PULSE_DISTANCE">PULSE_DISTANCE</option>\n        <option value="APPLE">APPLE</option>\n        <option value="DENON">DENON</option>\n        <option value="JVC">JVC</option>\n        <option value="LG">LG</option>\n        <option value="LG2">LG2</option>\n        <option value="NEC">NEC</option>\n        <option value="NEC2">NEC2</option>\n        <option value="ONKYO">ONKYO</option>\n        <option value="PANASONIC">PANASONIC</option>\n        <option value="KASEIKYO">KASEIKYO</option>\n        <option value="KASEIKYO_DENON">KASEIKYO_DENON</option>\n        <option value="KASEIKYO_SHARP">KASEIKYO_SHARP</option>\n        <option value="KASEIKYO_JVC">KASEIKYO_JVC</option>\n        <option value="KASEIKYO_MITSUBISHI">KASEIKYO_MITSUBISHI</option>\n        <option value="RC5">RC5</option>\n        <option value="RC6">RC6</option>\n        <option value="SAMSUNG">SAMSUNG</option>\n        <option value="SAMSUNGLG">SAMSUNGLG</option>\n        <option value="SAMSUNG48">SAMSUNG48</option>\n        <option value="SHARP">SHARP</option>\n        <option value="SONY">SONY</option>\n        <option value="BANG_OLUFSEN">BANG_OLUFSEN</option>\n        <option value="BOSEWAVE">BOSEWAVE</option>\n        <option value="LEGO_PF">LEGO_PF</option>\n        <option value="MAGIQUEST">MAGIQUEST</option>\n        <option value="WHYNTER">WHYNTER</option>\n        <option value="FAST">FAST</option>\n      </select>\n    </form>\n  </div>\n\n  <div id="finishCreateIRSendingData" style="position:absolute;bottom:2.5rem;left:2rem;display:flex;gap:1rem;">\n    <div style="" class="box" id="save-as-protocol-custom-ir-btn">\n      <div class="box__label" style="color:#eee">Save as Protocol</div>\n    </div>\n    <div style="" class="box" id="send-without-saving-custom-ir-btn">\n      <div class="box__label" style="color:#eee">Send without Saving</div>\n    </div>\n  </div>\n\n  <div style="position:absolute;bottom:1rem;left:2rem;">\n    <span style="font-size:10px;">\n      * Only required if you want to save the command as a protocol.\n    </span>\n  </div>\n</div>\n\n'; document.getElementById("createCustomCommandCloseBtn").addEventListener("click", (() => { show(), createCustomCommandGUI.innerHTML = "" })); const e = document.getElementById("save-as-protocol-custom-ir-btn"); e.addEventListener("click", (() => { const e = document.getElementById("IRNameInput").value, t = document.getElementById("IRAddressInput").value, o = document.getElementById("IRDataInput").value, n = document.getElementById("IRProtocolSelect").value; e ? t ? o ? n ? localStorage.getItem("!-" + e) ? alert("Protocol with that name already exists.") : (localStorage.setItem("!-" + e, "IR#" + t + "#" + o + "#" + n), localStorage.setItem("protocols", null == localStorage.getItem("protocols") ? e : localStorage.getItem("protocols") + ";;;" + e), show(), createCustomCommandGUI.innerHTML = "") : alert("Please enter a protocol Type!") : alert("Please enter a protocol data!") : alert("Please enter a protocol address!") : alert("Please enter a protocol name!") })); const t = document.getElementById("send-without-saving-custom-ir-btn"); t.addEventListener("click", (() => { const o = document.getElementById("IRAddressInput").value, n = document.getElementById("IRDataInput").value, l = document.getElementById("IRProtocolSelect").value; o ? n ? l ? (localStorage.setItem("scheduleToSendIR", o + "#" + n + "#" + l), disableButton(t), disableButton(e), waitForLocalStorageItemThenShowSuccessScreen("ir-was-sent")) : alert("Please enter a protocol Type!") : alert("Please enter a protocol data!") : alert("Please enter a protocol address!") })) })), createCustom443.addEventListener("click", (() => { hide("60%"); createCustomCommandGUI.innerHTML += '\n<div style="background:white;height:50vh;width:50vw;border-radius:2rem">\n  <div id="createCustomCommandCloseBtn" style="position:absolute;top:2rem;right:2rem;background-color:black;border-radius:10rem;width:3rem;height:3rem;display:flex;align-items:center;justify-content:center">\n    <div style="color:white">✖</div>\n  </div>\n\n  <div style="padding-left: 2rem;padding-top: 1rem;">443MHz Protocol Name: *</div>\n  <div style="padding-left: 2rem;padding-top: 1rem">\n    <form>\n      <label for="443MHzNameInput"></label>\n      <input type="text" id="443MHzNameInput" name="443MHzNameInput" style="font-size:18px; width:80%">\n    </form>\n  </div>\n\n  <div style="padding-left: 2rem;padding-top: 1rem;">443MHz Command Data:</div>\n  <div style="padding-left: 2rem;">\n    <form>\n      <label for="443MHzDataInput"></label>\n      <input oninput="validateInput(event)" type="text" id="443MHzDataInput" name="443MHzDataInput" style="font-size:18px; width:80%">\n    </form>\n  </div>\n\n  <div id="finishCreate443MHzSendingData" style="position:absolute;bottom:2.5rem;left:2rem;display:flex;gap:1rem;">\n    <div style="" class="box" id="save-as-protocol-custom-443-btn">\n      <div class="box__label" style="color:#eee">Save as Protocol</div>\n    </div>\n    <div style="" class="box" id="send-without-saving-custom-443-btn">\n      <div class="box__label" style="color:#eee">Send without Saving</div>\n    </div>\n  </div>\n\n  <div style="position:absolute;bottom:1rem;left:2rem;">\n    <span style="font-size:10px;">\n      * Only required if you want to save the command as a protocol.\n    </span>\n  </div>\n</div>\n'; document.getElementById("createCustomCommandCloseBtn").addEventListener("click", (() => { show(), createCustomCommandGUI.innerHTML = "" })); const e = document.getElementById("save-as-protocol-custom-443-btn"); e.addEventListener("click", (() => { const e = document.getElementById("443MHzNameInput").value, t = document.getElementById("443MHzDataInput").value; e ? t ? localStorage.getItem("!-" + e) ? alert("Protocol with that name already exists.") : (localStorage.setItem("!-" + e, "443#" + t), localStorage.setItem("protocols", null == localStorage.getItem("protocols") ? e : localStorage.getItem("protocols") + ";;;" + e), show(), createCustomCommandGUI.innerHTML = "") : alert("Please enter a protocol data!") : alert("Please enter a protocol name!") })); const t = document.getElementById("send-without-saving-custom-443-btn"); t.addEventListener("click", (() => { const o = document.getElementById("443MHzDataInput").value; o ? (localStorage.setItem("scheduleToSend443Binary", o), disableButton(t), disableButton(e), show(), createCustomCommandGUI.innerHTML = "", localStorage.removeItem(localStorageItem), localStorage.setItem("scheduleForceSync", "true")) : alert("Please enter a protocol data!") })) })), setInterval((() => { const e = localStorage.getItem("scheduleToast"); e && (localStorage.removeItem("scheduleToast"), showToast(e)) }), 25);</script>
+</body>
+
+</html>

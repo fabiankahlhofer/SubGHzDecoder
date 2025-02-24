@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <style>
+    *,
+    .boxes {
+      margin: 0
+    }
+
+    .box,
+    .boxes {
+      padding: 20px;
+      box-sizing: border-box
+    }
+
+    .boxes,
+    ul li {
+      list-style: none
+    }
+
+    *,
+    .context__menu {
+      font-family: Arial
+    }
+
+    .box,
+    .item,
+    button {
+      cursor: pointer
+    }
+
+    body {
+      overflow-x: hidden
+    }
+
+    * {
+      padding: 0;
+      border: 0
+    }
+
+    .boxes {
+      display: grid;
+      grid-template-rows: repeat(4, 1fr);
+      grid-template-columns: repeat(4, 1fr);
+      grid-gap: 20px;
+      height: 90vh
+    }
+
+    .box {
+      background: #23272a;
+      color: #eee;
+      position: relative;
+      box-shadow: 0 0 8px rgba(0, 0, 0, .2);
+      height: 100%
+    }
+
+    .box:hover {
+      background: rgba(35, 39, 42, .9);
+      box-shadow: 0 8px 15px rgba(0, 0, 0, .4)
+    }
+
+    .box__label {
+      position: absolute;
+      right: 50%;
+      top: 50%;
+      transform: translate(50%, -50%)
+    }
+
+    *,
+    :after,
+    :before {
+      -moz-box-sizing: border-box;
+      -webkit-box-sizing: border-box;
+      box-sizing: border-box
+    }
+
+    :active,
+    :focus,
+    a:active,
+    a:focus {
+      outline: 0
+    }
+
+    aside,
+    footer,
+    header,
+    nav {
+      display: block
+    }
+
+    body,
+    html {
+      height: 100%;
+      width: 100%;
+      line-height: 1;
+      font-size: 14px;
+      -ms-text-size-adjust: 100%;
+      -moz-text-size-adjust: 100%;
+      -webkit-text-size-adjust: 100%
+    }
+
+    button,
+    input,
+    textarea {
+      font-family: inherit
+    }
+
+    input::-ms-clear {
+      display: none
+    }
+
+    input::-ms-reveal {
+      display: none
+    }
+
+    button::-moz-focus-inner {
+      padding: 0;
+      border: 0
+    }
+
+    a,
+    a:hover,
+    a:visited {
+      text-decoration: none
+    }
+
+    .context__menu {
+      position: absolute;
+      z-index: 10000;
+      text-align: left;
+      display: none;
+      opacity: 0;
+      width: 150px;
+      background-color: #202020;
+      color: #fff;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, .3);
+      transition: .2s
+    }
+
+    .menu__list {
+      display: flex;
+      justify-content: space-between;
+      flex-direction: column;
+      letter-spacing: 1px;
+      height: 100%;
+      width: 100%
+    }
+
+    .item {
+      padding: 10px 5px;
+      font-weight: 300;
+      border-radius: 5px;
+      transition: .1s
+    }
+
+    .item:hover {
+      background-color: #303030;
+      letter-spacing: 2px
+    }
+
+    .item:active {
+      color: rgb(66, 133, 244, .3)
+    }
+
+    .active {
+      display: block;
+      opacity: 1
+    }
+  </style>
+
+</head>
+
+<body>
+  <ul id="protocolList" class="boxes"> </ul>
+
+  <nav class="context__menu">
+    <ul class="menu__list">
+      <li class="item send">
+        <span class="list__item">Send</span>
+      </li>
+      <li class="item view">
+        <span class="list__item">View info</span>
+      </li>
+      <li class="item export">
+        <span class="list__item">Export</span>
+      </li>
+      <li class="item del">
+        <span class="list__item">Delete</span>
+      </li>
+    </ul>
+  </nav>
+
+  <script>
+    function sync() {
+      const e = localStorage.getItem("protocols");
+      document.getElementById("protocolList").innerHTML = "", e && e.split(";;;").forEach((e => {
+        if (0 != e.length) {
+          const o = document.querySelector("#protocolList"),
+            t = document.createElement("li");
+          t.classList.add("boxes__item"), t.innerHTML = `<div class="box"><div class="box__label">${e}</div></div>`, t.addEventListener("click", (() => { })), o.appendChild(t)
+        }
+      }))
+    }
+    sync(), setInterval((() => {
+      const e = localStorage.getItem("scheduleToAddElement"),
+        o = localStorage.getItem("scheduleToRemoveElement");
+      if (e) {
+        const o = document.querySelector("#protocolList"),
+          t = document.createElement("li");
+        t.classList.add("boxes__item");
+        const l = e.split(";;;")[0],
+          c = e.split(";;;")[1];
+        t.innerHTML = `<div class="box"><div class="box__label">${l}</div></div>`, o.appendChild(t), localStorage.setItem(l, c), localStorage.setItem("protocols", null == localStorage.getItem("protocols") ? l : localStorage.getItem("protocols") + ";;;" + l), localStorage.removeItem("scheduleToAddElement"), sync()
+      }
+      if (o) {
+        const e = document.querySelector("#protocolList"),
+          t = Array.from(e.children).find((e => e.querySelector(".box__label").textContent === o));
+        if (!e || !t) return;
+        e.removeChild(t), localStorage.removeItem("!-" + o), localStorage.removeItem("scheduleToRemoveElement"), sync()
+      }
+      "true" == localStorage.getItem("scheduleSync") && (localStorage.removeItem("scheduleSync"), sync()), localStorage.getItem("scheduleForceSync") && (window.location.reload(), localStorage.removeItem("scheduleForceSync"))
+    }));
+  </script>
+
+  <script>
+    const menu = document.querySelector(".context__menu"),
+      [add, view, edit, del] = document.querySelectorAll(".send, .view, .export, .del");
+    let selectedElement;
+
+    function encodeToBase64(e) {
+      return btoa(unescape(encodeURIComponent(e)))
+    }
+
+    function estimateType(e) {
+      let t = !1,
+        o = !1;
+      return e.includes("decimal") && e.includes("hex") && e.includes("length") && e.includes("protocol") && e.includes("bin") && e.includes("raw") ? (t = !0, "443-raw") : e.includes("address") && e.includes("command") && e.includes("protocol") && e.includes("bin") && e.includes("dec") ? (o = !0, "IR-raw") : e.startsWith("443#") ? "443" : e.startsWith("IR#") ? "IR" : t && o ? "undefined" : t ? "443" : o ? "IR" : void 0
+    }
+
+    function getPosition(e) {
+      let t = 0,
+        o = 0;
+      return e.pageX || e.pageY ? (t = e.pageX, o = e.pageY) : (e.clientX || e.clientY) && (t = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft, o = e.clientY + document.body.scrollTop + document.documentElement.scrollTop), {
+        x: t,
+        y: o
+      }
+    }
+
+    function clickInsideElement(e, t) {
+      let o = e.srcElement || e.target;
+      for (; o;) {
+        if (o.classList && o.classList.contains(t)) return o;
+        o = o.parentNode
+      }
+      return !1
+    }
+    document.addEventListener("click", (e => {
+      e.preventDefault();
+      // const {
+      //   x: t,
+      //   y: o
+      // } = getPosition(e);
+      const o = "SEND";
+      // alert(o);
+      // console.log(`${o} click ${selectedElement.textContent}`);
+      const selectedElement = e.srcElement;
+      // alert(selectedElement.textContent)
+      const s = localStorage.getItem("!-" + selectedElement.textContent.trim());
+      if (true) {
+        s.split(";#;");
+        let e = s.startsWith("443#") ? "443" : s.startsWith("IR#") ? "IR" : "undefined";
+        if ("undefined" === e && (e = estimateType(s)), "undefined" === e) return void localStorage.setItem("scheduleToast", "Error: Couldn't obtain Protocol type");
+        if (e.includes("443")) {
+          const e = s.startsWith("443#") ? s.split("#")[1] : JSON.parse(s).bin;
+          // alert(e);
+          localStorage.setItem("scheduleToSend443Binary", e)
+        } else if (e.includes("IR") && !e.includes("raw")) {
+          const e = s.split("#"),
+            t = e[1],
+            o = e[2],
+            l = e[3];
+          if (!t || !o || !l) return void localStorage.setItem("scheduleToast", "Data sent successfully.");
+          localStorage.setItem("scheduleToSendIR", `${t}#${o}#${l}`), console.log("hello")
+        } else if (e.includes("IR") && e.includes("raw")) {
+          const e = JSON.parse(s).address,
+            t = JSON.parse(s).command,
+            o = JSON.parse(s).protocol;
+          if (!e || !t || !o) return void localStorage.setItem("scheduleToast", "Data sent successfully.");
+          localStorage.setItem("scheduleToSendIR", `${e}#${t}#${o}`)
+        }
+        // alert("sent");
+      }
+      menu.classList.remove("active")
+      menu.classList.add("active"), menu.style.left = t + "px", menu.style.top = o + "px", selectedElement = e.target
+    })), document.addEventListener("click", (e => {
+      clickInsideElement(e, "item") || menu.classList.remove("active")
+    })), setInterval((() => {
+      "true" == localStorage.getItem("scheduleSync") && (localStorage.removeItem("scheduleSync"), sync())
+    }), 100), [add, view, edit, del].forEach((e => {
+      e.addEventListener("click", (t => {
+        const o = e.classList[1].toUpperCase();
+        console.log(`${o} click ${selectedElement.textContent}`);
+        const s = localStorage.getItem("!-" + selectedElement.textContent.trim());
+        if ("VIEW" === o) console.log(s), localStorage.setItem("scheduleToInspectElement", selectedElement.textContent + ":;:" + s);
+        else {
+          if ("EDIT" === o) return;
+          if ("DEL" === o) {
+            localStorage.removeItem("!-" + selectedElement.textContent.trim());
+            let e = localStorage.getItem("protocols").split(";;;");
+            e = e.filter((e => e !== selectedElement.textContent.trim())), localStorage.setItem("protocols", e.join(";;;")), setTimeout((() => {
+              sync()
+            }), 150)
+          } else if ("SEND" === o) {
+            s.split(";#;");
+            let e = s.startsWith("443#") ? "443" : s.startsWith("IR#") ? "IR" : "undefined";
+            if ("undefined" === e && (e = estimateType(s)), "undefined" === e) return void localStorage.setItem("scheduleToast", "Error: Couldn't obtain Protocol type");
+            if (e.includes("443")) {
+              const e = s.startsWith("443#") ? s.split("#")[1] : JSON.parse(s).bin;
+              localStorage.setItem("scheduleToSend443Binary", e)
+            } else if (e.includes("IR") && !e.includes("raw")) {
+              const e = s.split("#"),
+                t = e[1],
+                o = e[2],
+                l = e[3];
+              if (!t || !o || !l) return void localStorage.setItem("scheduleToast", "Data sent successfully.");
+              localStorage.setItem("scheduleToSendIR", `${t}#${o}#${l}`), console.log("hello")
+            } else if (e.includes("IR") && e.includes("raw")) {
+              const e = JSON.parse(s).address,
+                t = JSON.parse(s).command,
+                o = JSON.parse(s).protocol;
+              if (!e || !t || !o) return void localStorage.setItem("scheduleToast", "Data sent successfully.");
+              localStorage.setItem("scheduleToSendIR", `${e}#${t}#${o}`)
+            }
+          } else if ("EXPORT" === o) {
+            const e = encodeToBase64(s),
+              t = {
+                [encodeToBase64("!-" + selectedElement.textContent)]: e
+              },
+              o = new Blob([JSON.stringify(t)], {
+                type: "text/plain;charset=utf-8"
+              }),
+              l = URL.createObjectURL(o),
+              n = document.createElement("a");
+            n.href = l, n.download = `${selectedElement.textContent.trim()}.json`, n.click(), URL.revokeObjectURL(l)
+          }
+        }
+        menu.classList.remove("active")
+      }))
+    })), setInterval((() => {
+      const e = "http://192.168.4.1/",
+        t = localStorage.getItem("scheduleToSend443Binary"),
+        o = localStorage.getItem("scheduleToSendIR");
+      if (t) {
+        localStorage.removeItem("scheduleToSend443Binary");
+        let o = !0;
+        const s = e + "api/send/443MHz" + `?data=${t}`;
+        console.log("I'm sending 443 to " + s), fetch(s).then((e => {
+          if (o = !0, !e.ok || !e.text().includes(t)) throw localStorage.setItem("scheduleToast", "An Error occurred whilst trying to send this Data.\n" + e.statusText), new Error("Network response was not ok.");
+          if (!e.text().includes(t)) throw localStorage.setItem("scheduleToast", "A malformed request was sent.\n" + e.statusText), new Error("Network response was not ok.");
+          localStorage.setItem("scheduleToast", "Command " + t + " sent successfully")
+        })).then((e => {
+          o = !0
+        })).catch((e => {
+          o = !0
+        })), !1 === o ? localStorage.setItem("scheduleToast", "Could not send the Data.") : localStorage.setItem("scheduleToast", "Successfully sent the Data.")
+      }
+      if (o) {
+        localStorage.removeItem("scheduleToSendIR");
+        const t = o.split("#"),
+          s = t[0],
+          l = t[1],
+          n = t[2];
+        let c = !1;
+        const a = e + "api/send/ir" + `?address=${s}&command=${l}&protocol=${n}`;
+        console.log("I'm sending IR to " + a), fetch(a).then((e => {
+          if (c = !0, !e.ok) throw localStorage.setItem("scheduleToast", "An error occurred whilst trying to send this data.\n" + e.statusText), new Error("Network response was not ok.");
+          return e.text()
+        })).then((e => {
+          if (!(e.includes(s) && e.includes(l) && e.includes(n))) throw localStorage.setItem("scheduleToast", "A malformed request was sent.\n" + e), new Error("Malformed request response.");
+          localStorage.setItem("scheduleToast", "Command " + o + " sent successfully")
+        })).catch((e => {
+          c = !0
+        })), !1 === c ? localStorage.setItem("scheduleToast", "Could not send the Data.") : localStorage.setItem("scheduleToast", "Successfully sent the Data.")
+      }
+    }), 100);
+  </script>
+</body>
+
+</html>

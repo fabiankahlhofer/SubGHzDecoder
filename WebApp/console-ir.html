@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Console</title>
+  <!-- style.css -->
+  <style>ul,ul li{font-family:'Roboto Mono',monospace}.hover-pointer,.linkButton{cursor:pointer}:not(.logItem){color:#23272a;font-family:Arial}.logItem{margin-top:0;margin-bottom:0}.linkButton{padding:.75rem;background-color:#23272a;color:#eee;border-radius:.5rem}ul{list-style-type:none;font-size:14px;line-height:25px;padding-left:5px}ul li{border-bottom:1px solid #80808038;cursor:default}li{display:block;white-space:normal;word-wrap:break-word}.disabled{background-color:#aaa;cursor:not-allowed}#consoleContainer{width:100%;display:flex;gap:2.5rem}#consoleWindow{height:50vh;width:50vw}#lowerContainer>div{flex-grow:1;padding:1rem}@media (orientation:portrait){#consoleWindow{width:95vw;margin-left:2.5vw;margin-right:2.5vw}#consoleContainer{display:block}}</style>
+  <style>li.logItem{cursor:pointer;}</style>
+</head>
+
+<body style="background:#23272A">
+  <ul id="console" style="color:#eee;font-family:'Roboto Mono', monospace;font-style:bold;">
+    <li class="logItem">Start</li>
+  <ul>
+  <script>
+function mapNumberToHexCustom(num) {
+  const black = '23272A'; // black color
+  const white = 'FFFFFF'; // white color
+  
+  num = Math.max(0, Math.min(256, num));
+  let red = Math.round((parseInt(black.substring(0, 2), 16) * (256 - num) + parseInt(white.substring(0, 2), 16) * num) / 256);
+  let green = Math.round((parseInt(black.substring(2, 4), 16) * (256 - num) + parseInt(white.substring(2, 4), 16) * num) / 256);
+  let blue = Math.round((parseInt(black.substring(4, 6), 16) * (256 - num) + parseInt(white.substring(4, 6), 16) * num) / 256);
+
+  red = red.toString(16).toUpperCase();
+  green = green.toString(16).toUpperCase();
+  blue = blue.toString(16).toUpperCase();
+
+  return '#' + red.padStart(2, '0') + green.padStart(2, '0') + blue.padStart(2, '0');
+}
+function log(string) {
+  const protocols = localStorage.getItem('protocols');
+  if (protocols) {
+    let protocolsArray = protocols.split(';;;');
+    protocolsArray = protocolsArray.filter((element) => element !== '');
+    let valuesArray = [];
+    protocolsArray.forEach((element) => {
+      let a = localStorage.getItem("!-" + element);
+      if (a) valuesArray.push(a);
+    });
+  
+    if (valuesArray.includes(string)) {
+      string = protocolsArray[valuesArray.indexOf(string)];
+    }
+  }
+
+
+  var newLine = document.createElement("li");
+  newLine.classList.add("logItem");
+  newLine.addEventListener('click', async function(event) {
+    let textContent = event.target.textContent;
+    if (localStorage.getItem("!-" + textContent)) {
+      textContent = localStorage.getItem("!-" + textContent);
+    }
+    localStorage.setItem('selectedLog', textContent);
+    localStorage.setItem('scheduleToInspectElement', ":;:" + textContent);
+    if (localStorage.getItem('isCreatingProtocoll') === 'true') {
+      localStorage.setItem('addingProtocolValue', event.target.textContent);
+    }
+    for (let i = 256; i >= 0; i--) {
+      event.target.style.backgroundColor = mapNumberToHexCustom(i);
+      event.target.style.color = mapNumberToHexCustom(256 - i);
+      await new Promise(resolve => setTimeout(resolve, 1));
+    }
+  });
+  newLine.innerHTML = (typeof string === 'string') ? string : JSON.stringify(string, null, 4);
+  document.querySelector('#console').appendChild(newLine);
+}
+function overwriteLog(strings) {
+  const a = document.querySelectorAll('li.logItem');
+  a.forEach(element => {
+    element.remove();
+  });
+
+  strings.forEach((string) => {
+    log(string);
+  });
+}
+function clearLog() {
+  const a = document.querySelectorAll('li.logItem');
+  a.forEach(element => {
+    element.remove();
+  });
+}
+function scrollToBottom() {
+  window.scrollTo({
+    top: document.body.scrollHeight,
+    behavior: 'smooth'
+  });
+}
+// setInterval(()=>{
+//   // overwriteLog(array);
+//   log(array[index]);
+//   index++;
+//   if (index===20){index=0;}
+//   if(localStorage.getItem("shouldScroll") === "true"){scrollToBottom();}
+// }, 250);
+
+let lastJsonResponse = "";
+async function update() {
+  const json = await getJSONfromAPI();
+  const jsonObject = JSON.parse(json);
+
+  if (json === lastJsonResponse) return;
+
+  clearLog();
+  for (const key in jsonObject) {
+    log(jsonObject[key]);
+  }
+
+  if (localStorage.getItem('shouldScroll') === 'true') {
+    scrollToBottom();
+  }
+
+  lastJsonResponse = json;
+
+  console.log("debug");
+}
+
+setInterval(update, 1000);
+
+async function getJSONfromAPI() {
+  const _443url = 'http://192.168.4.1/api/get/443mhz';
+  const _irurl = 'http://192.168.4.1/api/get/ir';
+  let _443JSON = '';
+  let _443raw = '';
+  let _IRJSON = '';
+  let _irraw = '';
+  
+  try {
+    const response443 = await fetch(_443url);
+    const data443 = await response443.json();
+    _443JSON = JSON.stringify(data443);
+    _443raw = data443;
+
+    const responseIR = await fetch(_irurl);
+    const dataIR = await responseIR.json();
+    _IRJSON = JSON.stringify(dataIR);
+    _irraw = dataIR;
+
+    // Merge the two objects assuming they are flat (1-dimensional)
+    const mergedData = { ..._irraw };
+
+    console.log(JSON.stringify(mergedData));
+
+    return JSON.stringify(mergedData);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    return null;
+  }
+}
+
+
+  </script>
+</body>
+</html>
